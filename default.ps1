@@ -44,9 +44,20 @@ task FixAtomoBuild {
 		
 			add-xmlnamespace "ns" "http://schemas.microsoft.com/developer/msbuild/2003"
 			
-			prepend-xml -atLeastOnce "ns:Project" "<PropertyGroup>
-				 <MSBuildExtensionsPath32>$msBuildExtensionsPath</MSBuildExtensionsPath32>
-			</PropertyGroup>";
+			$needsBuildExtensions = $false;
+			
+			for-xml  "//Import" {
+				$project = get-attribute "Project"
+				if ($project -and $project.Contains("$(MSBuildExtensionsPath32)")) {
+					$needsBuildExtensions = true;
+				}
+			}
+			
+			if ($needsBuildExtensions) {
+				prepend-xml -atLeastOnce "ns:Project" "<PropertyGroup>
+					 <MSBuildExtensionsPath32>$msBuildExtensionsPath</MSBuildExtensionsPath32>
+				</PropertyGroup>";
+			}
 			
 			for-xml "//ns:Content" {
 				$include = get-xml "@Include"
