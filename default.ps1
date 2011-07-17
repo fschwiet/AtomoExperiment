@@ -39,22 +39,23 @@ task FixAtomoBuild {
 
 	foreach($csproj in (gci $siteTarget *.csproj -rec | % { $_.fullname })) {
 	
-		"$csproj..." | write-host
+		"updating $csproj..." | write-host
 		update-xml $csproj {
 		
 			add-xmlnamespace "ns" "http://schemas.microsoft.com/developer/msbuild/2003"
 			
-			$needsBuildExtensions = $false;
+			$script:needsBuildExtensions = $false;
 			
-			for-xml  "//Import" {
-				$project = get-attribute "Project"
-				if ($project -and $project.Contains("$(MSBuildExtensionsPath32)")) {
-					$needsBuildExtensions = true;
+			for-xml  "//ns:Import" {
+				$project = get-xml "@Project"
+				
+				if (($project -ne $null) -and $project.Contains("`$(MSBuildExtensionsPath32)")) {
+					$script:needsBuildExtensions = $true;
 				}
 			}
 			
-			if ($needsBuildExtensions) {
-				prepend-xml -atLeastOnce "ns:Project" "<PropertyGroup>
+			if ($script:needsBuildExtensions) {
+]				prepend-xml -atLeastOnce "ns:Project" "<PropertyGroup>
 					 <MSBuildExtensionsPath32>$msBuildExtensionsPath</MSBuildExtensionsPath32>
 				</PropertyGroup>";
 			}
@@ -88,6 +89,6 @@ task RunAtomoChecklist {
     # http://sueetie.com/wiki/GummyBearSetup.ashx#Post-Installation_Checklist_10
 }
 
-task TestDeploy -depends Cleanup, UnzipAtomo, FixAtomoBuild, BuildAtomo #, CreateAtomoInIIS, ConfigureAtomo, RunAtomoFirstrun, RunAtomoChecklist
+task TestDeploy -depends Cleanup, UnzipAtomo, FixAtomoBuild, BuildAtomo, CreateAtomoInIIS, ConfigureAtomo, RunAtomoFirstrun, RunAtomoChecklist
 {
 }
