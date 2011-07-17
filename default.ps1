@@ -45,6 +45,7 @@ task FixAtomoBuild {
 			add-xmlnamespace "ns" "http://schemas.microsoft.com/developer/msbuild/2003"
 			
 			$script:needsBuildExtensions = $false;
+			$script:needsImportAdded = $false;
 			
 			for-xml  "//ns:Import" {
 				$project = get-xml "@Project"
@@ -52,12 +53,20 @@ task FixAtomoBuild {
 				if (($project -ne $null) -and $project.Contains("`$(MSBuildExtensionsPath32)")) {
 					$script:needsBuildExtensions = $true;
 				}
+				
+				if (get-xml "@Condition") {
+					$script:needsImportAdded = $true;
+				}
 			}
 			
 			if ($script:needsBuildExtensions) {
-]				prepend-xml -atLeastOnce "ns:Project" "<PropertyGroup>
+				prepend-xml -atLeastOnce "ns:Project" "<PropertyGroup>
 					 <MSBuildExtensionsPath32>$msBuildExtensionsPath</MSBuildExtensionsPath32>
 				</PropertyGroup>";
+			}
+			
+			if ($script:needsImportAdded) {
+				append-xml "ns:Project" "<Import Project=""`$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v10.0\WebApplications\Microsoft.WebApplication.targets""/>"
 			}
 			
 			for-xml "//ns:Content" {
