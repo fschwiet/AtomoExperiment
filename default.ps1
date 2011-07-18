@@ -7,13 +7,27 @@ properties {
 	$siteTarget = "c:\inetpub\Sueetie.Atomo.Test"
 
 	$buildTestDir = "$baseDir\build"
+    
+    $applicationPoolName = "atomotest"
 }
 
 import-module .\tools\PSUpdateXml\PSUpdateXml.psm1
 
 task default -depends TestDeploy
 
-task CleanupIISConfig {}
+task CleanupIISConfig {
+
+    $appPoolPath = "IIS:\AppPools\$applicationPoolName";
+
+    if (test-path $appPoolPath) {
+
+        $appPool = gi $appPoolPath;
+
+        ls "IIS:\sites" | ? { $_.applicationPool -eq $appPool.name } | remove-item -recurse
+
+        $appPool | remove-item -recurse
+    }
+}
 
 task CleanupDeploymentDirectory { 
 
@@ -72,6 +86,7 @@ task FixAtomoBuild {
 			for-xml "//ns:Content" {
 				$include = get-xml "@Include"
 				if ($include -and $include.Startswith("images\slideshows\slide")) {
+                    "removing $include" | write-host -fore green
 					remove-xml "."
 				}
 			}
@@ -79,7 +94,7 @@ task FixAtomoBuild {
 			for-xml "//ns:HintPath" {
 				$value = get-xml "."
 				if ($value -eq "..\References\Lib\Anthem.NET\Anthem.dll") {
-					"updating reference to anthem.dll" | write-host -fore green
+					"patching HintPath to anthem.dll" | write-host -fore green
 					set-xml "." "..\..\Lib\ScrewTurn304\Anthem.dll"
 				}
 			}
@@ -91,7 +106,7 @@ task BuildAtomo {
 	$v4_net_version = (ls "$env:windir\Microsoft.NET\Framework\v4.0*").Name
 	$atomoSolutionPath = "$siteTarget\source\Sueetie.Atomo.3.2.sln"
 
-	exec { &"C:\Windows\Microsoft.NET\Framework\$v4_net_version\MSBuild.exe" $atomoSolutionPath /T:"Clean,Build" /property:OutDir="$buildTestDir\" }
+	exec { &"C:\Windows\Microsoft.NET\Framework\$v4_net_version\MSBuild.exe" $atomoSolutionPath /T:"Clean,Build" }
 }
 
 
@@ -167,19 +182,35 @@ function CreateApplicationPool($applicationPoolName) {
 }
 
 
+function CreateSite($host, $applicationPoolName, $physicalPath) {
+
+    $sitePath = "iis:\sites\$host-atomo";
+
+    $site = new-item $sitePath -bindings @{protocol="http";bindingInformation="*:80:" + $host} -physicalPath $physicalPath
+    
+    Set-ItemProperty $site.PSPath -name applicationPool -value $applicationPoolName
+    
+    $sitePath
+}
+
+function CreateApplication($sitePath, $name, $physicalPath) {
+
+    new-item "$sitePath\$name" -physicalPath "$physicalPath\$site" -type Application
+}
+
+
 task CreateAtomoInIIS -depends InstallIISAndImportTools {
 
-    $applicationPoolName = "atomotest"
-    $physicalDirectory = "$siteTarget\source\WebApplication";
+    $physicalPath = "$siteTarget\source\WebApplication";
         
     CreateApplicationPool $applicationPoolName
     
-    $site = CreateSite -host "atomotest" -physicalDirectory $physicalDirectory
+    $sitePath = CreateSite -host "atomotest" -applicationPoolName $applicationPoolName -physicalPath $physicalPath
     
-    CreateApplication -site $site -name "blog" -physicalDirectory "$phsyicalDirectory\blog"
-    CreateApplication -site $site -name "forum" -physicalDirectory "$phsyicalDirectory\forum"
-    CreateApplication -site $site -name "media" -physicalDirectory "$phsyicalDirectory\media"
-    CreateApplication -site $site -name "wiki" -physicalDirectory "$phsyicalDirectory\wiki"
+    CreateApplication -sitePath $sitePath -name "blog" -physicalPath "$physicalPath\blog"
+    CreateApplication -sitePath $sitePath -name "forum" -physicalPath "$physicalPath\forum"
+    CreateApplication -sitePath $sitePath -name "media" -physicalPath "$physicalPath\media"
+    CreateApplication -sitePath $sitePath -name "wiki" -physicalPath "$physicalPath\wiki"
 
     # grant permissions
 }
