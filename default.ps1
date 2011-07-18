@@ -86,7 +86,67 @@ task BuildAtomo {
     exec { &"C:\Windows\Microsoft.NET\Framework\$v4_net_version\MSBuild.exe" $atomoSolutionPath /T:"Clean,Build" /property:OutDir="$buildTestDir\" }
 }
 
-task CreateAtomoInIIS {}
+
+
+task InstallIISAndImportTools {
+
+    # WebAdministration module requires we run in x64
+    if ($env:ProgramFiles.Contains("x86")) {
+        throw "IIS module WebAdministration requires powershell be running in 64bit."
+    }
+
+    try
+    {
+        import-module WebAdministration
+    }
+    catch
+    {
+        "Installing IIS..." | write-host -fore yellow
+
+        #
+        # http://technet.microsoft.com/en-us/library/cc722041%28v=WS.10%29.aspx
+        #
+        # Feature names are case-sensitive, and you will get no warnings if you mispell a feature or
+        # do not include prerequisite features first.  Proceed with care.
+        #
+
+        function InstallFeature($name) {
+            cmd /c "ocsetup $name /passive"
+        }
+
+        InstallFeature IIS-WebServerRole
+            InstallFeature IIS-WebServer
+                InstallFeature IIS-CommonHttpFeatures
+                    InstallFeature IIS-DefaultDocument
+                    InstallFeature IIS-DirectoryBrowsing
+                    InstallFeature IIS-HttpErrors
+                    InstallFeature IIS-HttpRedirect
+                    InstallFeature IIS-StaticContent
+                InstallFeature IIS-HealthAndDiagnostics
+                    InstallFeature IIS-CustomLogging
+                    InstallFeature IIS-HttpLogging
+                    InstallFeature IIS-HttpTracing
+                    InstallFeature IIS-LoggingLibraries
+                InstallFeature IIS-Security
+                    InstallFeature IIS-RequestFiltering
+                    InstallFeature IIS-WindowsAuthentication
+                InstallFeature IIS-ApplicationDevelopment
+                    InstallFeature IIS-NetFxExtensibility
+                    InstallFeature IIS-ISAPIExtensions
+                    InstallFeature IIS-ISAPIFilter
+                    InstallFeature IIS-ASPNET
+            InstallFeature IIS-WebServerManagementTools 
+                InstallFeature IIS-ManagementConsole 
+                InstallFeature IIS-ManagementScriptingTools
+                
+            InstallFeature WCF-HTTP-Activation
+
+        import-module WebAdministration
+        
+    }
+}
+
+task CreateAtomoInIIS -depends InstallIISAndImportTools {}
 task ConfigureAtomo {
     # update connection string
 	# update WCF endpoints
