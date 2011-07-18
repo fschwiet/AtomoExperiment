@@ -195,7 +195,7 @@ function CreateSite($host, $applicationPoolName, $physicalPath) {
 
 function CreateApplication($sitePath, $name, $physicalPath) {
 
-    new-item "$sitePath\$name" -physicalPath "$physicalPath\$site" -type Application
+    $application = new-item "$sitePath\$name" -physicalPath "$physicalPath\$site" -type Application
 }
 
 
@@ -212,7 +212,17 @@ task CreateAtomoInIIS -depends InstallIISAndImportTools {
     CreateApplication -sitePath $sitePath -name "media" -physicalPath "$physicalPath\media"
     CreateApplication -sitePath $sitePath -name "wiki" -physicalPath "$physicalPath\wiki"
 
-    # grant permissions
+    $null = icacls $physicalPath /remove:g "BUILTIN\IIS_IUSRS"
+    $null = icacls $physicalPath /grant "BUILTIN\IIS_IUSRS:(OI)(CI)(RX)" 
+
+    "Granting read/execute permissions to $physicalPath" | write-host -fore green
+
+    ("images\avatars", "blog\app_data", "blog\web.config", "forum\uploads", "media\gs\mediaobjects", "wiki\public", "util\index", "util\marketplace\downloads") | % {
+    
+        $subpath = "$physicalPath\$_"
+        "Granting write permissions to $subpath" | write-host -fore green
+        icacls $subpath /grant "BUILTIN\IIS_IUSRS:(OI)(CI)(M)" 
+    }
 }
 
 
