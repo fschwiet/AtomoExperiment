@@ -109,7 +109,7 @@ task InstallIISAndImportTools {
 	}
 	catch
 	{
-		"Installing IIS..." | write-host -fore yellow
+		"Installing IIS... (this is slow...  this only runs if WebAdministration is not installed)" | write-host -fore yellow
 
 		#
 		# http://technet.microsoft.com/en-us/library/cc722041%28v=WS.10%29.aspx
@@ -154,7 +154,26 @@ task InstallIISAndImportTools {
 	}
 }
 
-task CreateAtomoInIIS -depends InstallIISAndImportTools {}
+
+task CreateAtomoInIIS -depends InstallIISAndImportTools {
+
+    $applicationPoolName = "atomotest"
+    $physicalDirectory = "$siteTarget\source\WebApplication";
+        
+    CreateApplicationPool $applicationPoolName
+    
+    $site = CreateSite -host "atomotest" -physicalDirectory $physicalDirectory
+    
+    CreateApplication -site $site -name "blog" -physicalDirectory "$phsyicalDirectory\blog"
+    CreateApplication -site $site -name "forum" -physicalDirectory "$phsyicalDirectory\forum"
+    CreateApplication -site $site -name "media" -physicalDirectory "$phsyicalDirectory\media"
+    CreateApplication -site $site -name "wiki" -physicalDirectory "$phsyicalDirectory\wiki"
+
+    # grant permissions
+}
+
+
+
 task ConfigureAtomo {
 	# update connection string
 	# update WCF endpoints
