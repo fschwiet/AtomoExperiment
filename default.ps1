@@ -36,8 +36,8 @@ task CleanupDeploymentDirectory {
 	}
 }
 
-
 task CleanupDeploymentDatabase { }
+
 task Cleanup -depends CleanupIISConfig, CleanupDeploymentDirectory, CleanupDeploymentDatabase {}
 
 task UnzipAtomo {
