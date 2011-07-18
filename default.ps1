@@ -155,6 +155,18 @@ task InstallIISAndImportTools {
 }
 
 
+
+function CreateApplicationPool($applicationPoolName) {
+
+    $appPool = new-item "IIS:\AppPools\$applicationPoolName"
+
+    $appPool.processModel.pingingEnabled = "False"
+    $appPool.managedPipelineMode = "Integrated"
+    $appPool.managedRuntimeVersion = "v4.0"
+    $appPool | set-item
+}
+
+
 task CreateAtomoInIIS -depends InstallIISAndImportTools {
 
     $applicationPoolName = "atomotest"
