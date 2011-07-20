@@ -11,6 +11,8 @@ properties {
     $applicationPoolName = "atomotest"
 
     $connectionString = "data source=(local);initial catalog=atomoexperiment;integrated security=SSPI"
+
+    $targetHostName = "atomotest"
 }
 
 import-module .\tools\PSUpdateXml\PSUpdateXml.psm1
@@ -207,7 +209,7 @@ task CreateAtomoInIIS -depends InstallIISAndImportTools {
         
     CreateApplicationPool $applicationPoolName
     
-    $sitePath = CreateSite -host "atomotest" -applicationPoolName $applicationPoolName -physicalPath $physicalPath
+    $sitePath = CreateSite -host $targetHostName -applicationPoolName $applicationPoolName -physicalPath $physicalPath
     
     CreateApplication -sitePath $sitePath -name "blog" -physicalPath "$physicalPath\blog"
     CreateApplication -sitePath $sitePath -name "forum" -physicalPath "$physicalPath\forum"
@@ -232,10 +234,14 @@ task CreateAtomoInIIS -depends InstallIISAndImportTools {
 task ConfigureAtomo {
 
     $original = [Regex]::Escape("data source=(local);initial catalog=AtomoDB;integrated security=SSPI")
+    $originalHost = [Regex]::Escape("http://atomo");
 
     foreach($configFile in (gci C:\inetpub\Sueetie.Atomo.Test *.config -rec | % { $_.fullname})) {
 
-        (get-content $configFile) | % { $_ -replace $original, $connectionString } | set-content $configFile
+        (get-content $configFile) | 
+            % { $_ -replace $original, $connectionString } | 
+            % { $_ -replace $originalHost, "http://$targetHostName" } |
+            set-content $configFile
     }
 
 	# update WCF endpoints
