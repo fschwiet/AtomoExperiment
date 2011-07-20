@@ -105,6 +105,10 @@ task FixAtomoBuild {
 			}
 		}
 	}
+
+    # create a .refresh file in the blog\bin directory so it picks up sueetie.commerce.dll
+    $null = mkdir "$siteTarget\source\WebApplication\blog\bin"
+    "..\..\Lib\Framework\Sueetie.Commerce.dll" | set-content "$siteTarget\source\WebApplication\blog\bin\Sueetie.Commerce.dll.refresh"
 }
 
 
