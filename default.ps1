@@ -13,9 +13,11 @@ properties {
     $connectionString = "data source=(local);initial catalog=atomoexperiment;integrated security=SSPI"
 
     $targetHostName = "atomotest"
+    $configureHostNameInHostsFile = $true
 }
 
 import-module .\tools\PSUpdateXml\PSUpdateXml.psm1
+import-module .\packages\PSHostsFile.3.0\lib\PSHostsFile.dll
 
 task default -depends TestDeploy
 
@@ -40,9 +42,7 @@ task CleanupDeploymentDirectory {
 	}
 }
 
-task CleanupDeploymentDatabase { }
-
-task Cleanup -depends CleanupIISConfig, CleanupDeploymentDirectory, CleanupDeploymentDatabase {}
+task Cleanup -depends CleanupIISConfig, CleanupDeploymentDirectory {}
 
 task UnzipAtomo {
 
@@ -133,7 +133,7 @@ task InstallIISAndImportTools {
 		#
 		# http://technet.microsoft.com/en-us/library/cc722041%28v=WS.10%29.aspx
 		#
-		# Feature names are case-sensitive, and you will get no warnings if you mispell a feature or
+		# Feature names are case-sensitive, and you will not be warned if you mispell a feature or
 		# do not include prerequisite features first.  Proceed with care.
 		#
 
@@ -244,7 +244,9 @@ task ConfigureAtomo {
             set-content $configFile
     }
 
-	# update WCF endpoints
+    if ($configureHostNameInHostsFile) {
+        set-HostsFileEntry -hostname $targetHostName -address "127.0.0.1"
+    }
 }
 
 task RunAtomoFirstrun {}
