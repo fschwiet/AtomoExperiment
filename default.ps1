@@ -11,6 +11,7 @@ properties {
     $applicationPoolName = "atomotest"
 
     $connectionString = "data source=(local);initial catalog=atomoexperiment;integrated security=SSPI"
+    # be sure you grant SQL permissions to BUILTIN\IIS_IUSRS
 
     $targetHostName = "atomotest"
     $configureHostNameInHostsFile = $true
@@ -200,6 +201,8 @@ function CreateSite($host, $applicationPoolName, $physicalPath) {
 function CreateApplication($sitePath, $name, $physicalPath) {
 
     $application = new-item "$sitePath\$name" -physicalPath "$physicalPath\$site" -type Application
+
+    Set-ItemProperty $application.PSPath -name applicationPool -value $applicationPoolName
 }
 
 
