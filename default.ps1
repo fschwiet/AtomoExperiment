@@ -6,8 +6,6 @@ properties {
 	$atomoZip = "C:\inetpub\Sueetie.Atomo.3.2.0.zip"
 	$siteTarget = "c:\inetpub\Sueetie.Atomo.Test"
 
-	$buildTestDir = "$baseDir\build"
-    
     $applicationPoolName = "atomotest"
 
     $connectionString = "data source=(local);initial catalog=atomoexperiment;integrated security=SSPI"
