@@ -2,9 +2,9 @@
 # http://sueetie.com/wiki/UsingAtomo.ashx
 
 properties {
-	$baseDir = (resolve-path .).Path
-	$atomoZip = "C:\inetpub\Sueetie.Atomo.3.2.0.zip"
-	$siteTarget = "c:\inetpub\Sueetie.Atomo.Test"
+    $baseDir = (resolve-path .).Path
+    $atomoZip = "C:\inetpub\Sueetie.Atomo.3.2.0.zip"
+    $siteTarget = "c:\inetpub\Sueetie.Atomo.Test"
 
     $applicationPoolName = "atomotest"
 
@@ -36,73 +36,73 @@ task CleanupIISConfig {
 
 task CleanupDeploymentDirectory { 
 
-	if (test-path $siteTarget) {
-		$null = rm $siteTarget -recurse -force
-	}
+    if (test-path $siteTarget) {
+        $null = rm $siteTarget -recurse -force
+    }
 }
 
 task Cleanup -depends CleanupIISConfig, CleanupDeploymentDirectory {}
 
 task UnzipAtomo {
 
-	"Unzipping atomo to $siteTarget..." | write-host
-	$null = exec {  & ".\tools\7-Zip\7za.exe" x $atomoZip "-o$siteTarget" }
+    "Unzipping atomo to $siteTarget..." | write-host
+    $null = exec {  & ".\tools\7-Zip\7za.exe" x $atomoZip "-o$siteTarget" }
 }
 
 task FixAtomoBuild {
 
-	cp "$baseDir\tools\MSBuild.MSVS" "$siteTarget\tools\MSBuild.MSVS" -rec -force
-	$msBuildExtensionsPath = "$siteTarget\tools\MSBuild.MSVS"
+    cp "$baseDir\tools\MSBuild.MSVS" "$siteTarget\tools\MSBuild.MSVS" -rec -force
+    $msBuildExtensionsPath = "$siteTarget\tools\MSBuild.MSVS"
 
-	foreach($csproj in (gci $siteTarget *.csproj -rec | % { $_.fullname })) {
-	
-		"updating $csproj..." | write-host
-		update-xml $csproj {
-		
-			add-xmlnamespace "ns" "http://schemas.microsoft.com/developer/msbuild/2003"
-			
-			$script:needsBuildExtensions = $false;
-			$script:needsImportAdded = $false;
-			
-			for-xml  "//ns:Import" {
-				$project = get-xml "@Project"
-				
-				if (($project -ne $null) -and $project.Contains("`$(MSBuildExtensionsPath32)")) {
-					$script:needsBuildExtensions = $true;
-				}
-				
-				if (get-xml "@Condition") {
-					$script:needsImportAdded = $true;
-				}
-			}
-			
-			if ($script:needsBuildExtensions) {
-				prepend-xml -atLeastOnce "ns:Project" "<PropertyGroup>
-					 <MSBuildExtensionsPath32>$msBuildExtensionsPath</MSBuildExtensionsPath32>
-				</PropertyGroup>";
-			}
-			
-			if ($script:needsImportAdded) {
-				append-xml "ns:Project" "<Import Project=""`$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v10.0\WebApplications\Microsoft.WebApplication.targets""/>"
-			}
-			
-			for-xml "//ns:Content" {
-				$include = get-xml "@Include"
-				if ($include -and $include.Startswith("images\slideshows\slide")) {
+    foreach($csproj in (gci $siteTarget *.csproj -rec | % { $_.fullname })) {
+    
+        "updating $csproj..." | write-host
+        update-xml $csproj {
+        
+            add-xmlnamespace "ns" "http://schemas.microsoft.com/developer/msbuild/2003"
+            
+            $script:needsBuildExtensions = $false;
+            $script:needsImportAdded = $false;
+            
+            for-xml  "//ns:Import" {
+                $project = get-xml "@Project"
+                
+                if (($project -ne $null) -and $project.Contains("`$(MSBuildExtensionsPath32)")) {
+                    $script:needsBuildExtensions = $true;
+                }
+                
+                if (get-xml "@Condition") {
+                    $script:needsImportAdded = $true;
+                }
+            }
+            
+            if ($script:needsBuildExtensions) {
+                prepend-xml -atLeastOnce "ns:Project" "<PropertyGroup>
+                     <MSBuildExtensionsPath32>$msBuildExtensionsPath</MSBuildExtensionsPath32>
+                </PropertyGroup>";
+            }
+            
+            if ($script:needsImportAdded) {
+                append-xml "ns:Project" "<Import Project=""`$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v10.0\WebApplications\Microsoft.WebApplication.targets""/>"
+            }
+            
+            for-xml "//ns:Content" {
+                $include = get-xml "@Include"
+                if ($include -and $include.Startswith("images\slideshows\slide")) {
                     "removing $include" | write-host -fore green
-					remove-xml "."
-				}
-			}
-			
-			for-xml "//ns:HintPath" {
-				$value = get-xml "."
-				if ($value -eq "..\References\Lib\Anthem.NET\Anthem.dll") {
-					"patching HintPath to anthem.dll" | write-host -fore green
-					set-xml "." "..\..\Lib\ScrewTurn304\Anthem.dll"
-				}
-			}
-		}
-	}
+                    remove-xml "."
+                }
+            }
+            
+            for-xml "//ns:HintPath" {
+                $value = get-xml "."
+                if ($value -eq "..\References\Lib\Anthem.NET\Anthem.dll") {
+                    "patching HintPath to anthem.dll" | write-host -fore green
+                    set-xml "." "..\..\Lib\ScrewTurn304\Anthem.dll"
+                }
+            }
+        }
+    }
 
     # create a .refresh file in the blog\bin directory so it picks up sueetie.commerce.dll
     $null = mkdir "$siteTarget\source\WebApplication\blog\bin"
@@ -111,69 +111,69 @@ task FixAtomoBuild {
 
 
 task BuildAtomo {
-	$v4_net_version = (ls "$env:windir\Microsoft.NET\Framework\v4.0*").Name
-	$atomoSolutionPath = "$siteTarget\source\Sueetie.Atomo.3.2.sln"
+    $v4_net_version = (ls "$env:windir\Microsoft.NET\Framework\v4.0*").Name
+    $atomoSolutionPath = "$siteTarget\source\Sueetie.Atomo.3.2.sln"
 
-	exec { &"C:\Windows\Microsoft.NET\Framework\$v4_net_version\MSBuild.exe" $atomoSolutionPath /T:"Clean,Build" }
+    exec { &"C:\Windows\Microsoft.NET\Framework\$v4_net_version\MSBuild.exe" $atomoSolutionPath /T:"Clean,Build" }
 }
 
 
 task InstallIISAndImportTools {
 
-	# WebAdministration module requires we run in x64
-	if ($env:ProgramFiles.Contains("x86")) {
-		throw "IIS module WebAdministration requires powershell be running in 64bit."
-	}
+    # WebAdministration module requires we run in x64
+    if ($env:ProgramFiles.Contains("x86")) {
+        throw "IIS module WebAdministration requires powershell be running in 64bit."
+    }
 
-	try
-	{
-		import-module WebAdministration
-	}
-	catch
-	{
-		"Installing IIS... (this is slow...  this only runs if WebAdministration is not installed)" | write-host -fore yellow
+    try
+    {
+        import-module WebAdministration
+    }
+    catch
+    {
+        "Installing IIS... (this is slow...  this only runs if WebAdministration is not installed)" | write-host -fore yellow
 
-		#
-		# http://technet.microsoft.com/en-us/library/cc722041%28v=WS.10%29.aspx
-		#
-		# Feature names are case-sensitive, and you will not be warned if you mispell a feature or
-		# do not include prerequisite features first.  Proceed with care.
-		#
+        #
+        # http://technet.microsoft.com/en-us/library/cc722041%28v=WS.10%29.aspx
+        #
+        # Feature names are case-sensitive, and you will not be warned if you mispell a feature or
+        # do not include prerequisite features first.  Proceed with care.
+        #
 
-		function InstallFeature($name) {
-			cmd /c "ocsetup $name /passive"
-		}
+        function InstallFeature($name) {
+            cmd /c "ocsetup $name /passive"
+        }
 
-		InstallFeature IIS-WebServerRole
-			InstallFeature IIS-WebServer
-				InstallFeature IIS-CommonHttpFeatures
-					InstallFeature IIS-DefaultDocument
-					InstallFeature IIS-DirectoryBrowsing
-					InstallFeature IIS-HttpErrors
-					InstallFeature IIS-HttpRedirect
-					InstallFeature IIS-StaticContent
-				InstallFeature IIS-HealthAndDiagnostics
-					InstallFeature IIS-CustomLogging
-					InstallFeature IIS-HttpLogging
-					InstallFeature IIS-HttpTracing
-					InstallFeature IIS-LoggingLibraries
-				InstallFeature IIS-Security
-					InstallFeature IIS-RequestFiltering
-					InstallFeature IIS-WindowsAuthentication
-				InstallFeature IIS-ApplicationDevelopment
-					InstallFeature IIS-NetFxExtensibility
-					InstallFeature IIS-ISAPIExtensions
-					InstallFeature IIS-ISAPIFilter
-					InstallFeature IIS-ASPNET
-			InstallFeature IIS-WebServerManagementTools 
-				InstallFeature IIS-ManagementConsole 
-				InstallFeature IIS-ManagementScriptingTools
-				
-			InstallFeature WCF-HTTP-Activation
+        InstallFeature IIS-WebServerRole
+            InstallFeature IIS-WebServer
+                InstallFeature IIS-CommonHttpFeatures
+                    InstallFeature IIS-DefaultDocument
+                    InstallFeature IIS-DirectoryBrowsing
+                    InstallFeature IIS-HttpErrors
+                    InstallFeature IIS-HttpRedirect
+                    InstallFeature IIS-StaticContent
+                InstallFeature IIS-HealthAndDiagnostics
+                    InstallFeature IIS-CustomLogging
+                    InstallFeature IIS-HttpLogging
+                    InstallFeature IIS-HttpTracing
+                    InstallFeature IIS-LoggingLibraries
+                InstallFeature IIS-Security
+                    InstallFeature IIS-RequestFiltering
+                    InstallFeature IIS-WindowsAuthentication
+                InstallFeature IIS-ApplicationDevelopment
+                    InstallFeature IIS-NetFxExtensibility
+                    InstallFeature IIS-ISAPIExtensions
+                    InstallFeature IIS-ISAPIFilter
+                    InstallFeature IIS-ASPNET
+            InstallFeature IIS-WebServerManagementTools 
+                InstallFeature IIS-ManagementConsole 
+                InstallFeature IIS-ManagementScriptingTools
+                
+            InstallFeature WCF-HTTP-Activation
 
-		import-module WebAdministration
-		
-	}
+        import-module WebAdministration
+        
+    }
 }
 
 
@@ -257,7 +257,7 @@ task ConfigureAtomo {
 task RunAtomoFirstrun {}
 
 task RunAtomoChecklist {
-	# http://sueetie.com/wiki/GummyBearSetup.ashx#Post-Installation_Checklist_10
+    # http://sueetie.com/wiki/GummyBearSetup.ashx#Post-Installation_Checklist_10
 }
 
 task TestDeploy -depends Cleanup, UnzipAtomo, FixAtomoBuild, BuildAtomo, CreateAtomoInIIS, ConfigureAtomo, RunAtomoFirstrun, RunAtomoChecklist
