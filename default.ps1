@@ -9,6 +9,8 @@ properties {
 	$buildTestDir = "$baseDir\build"
     
     $applicationPoolName = "atomotest"
+
+    $connectionString = "data source=(local);initial catalog=atomoexperiment;integrated security=SSPI"
 }
 
 import-module .\tools\PSUpdateXml\PSUpdateXml.psm1
@@ -102,13 +104,13 @@ task FixAtomoBuild {
 	}
 }
 
+
 task BuildAtomo {
 	$v4_net_version = (ls "$env:windir\Microsoft.NET\Framework\v4.0*").Name
 	$atomoSolutionPath = "$siteTarget\source\Sueetie.Atomo.3.2.sln"
 
 	exec { &"C:\Windows\Microsoft.NET\Framework\$v4_net_version\MSBuild.exe" $atomoSolutionPath /T:"Clean,Build" }
 }
-
 
 
 task InstallIISAndImportTools {
@@ -228,7 +230,14 @@ task CreateAtomoInIIS -depends InstallIISAndImportTools {
 
 
 task ConfigureAtomo {
-	# update connection string
+
+    $original = [Regex]::Escape("data source=(local);initial catalog=AtomoDB;integrated security=SSPI")
+
+    foreach($configFile in (gci C:\inetpub\Sueetie.Atomo.Test *.config -rec | % { $_.fullname})) {
+
+        (get-content $configFile) | % { $_ -replace $original, $connectionString } | set-content $configFile
+    }
+
 	# update WCF endpoints
 }
 
